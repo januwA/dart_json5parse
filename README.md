@@ -1,0 +1,64 @@
+dart_json5parse
+
+> Not strictly tested, there may be many problems 🐞🐞🐞
+
+
+## install
+```yaml
+dependencies:
+ dart_json5parse:
+```
+
+## example
+```dart
+import 'dart:io';
+
+import 'package:dart_json5parse/dart_json5parse.dart';
+
+String __filename = Platform.script.path.replaceFirst('/', '');
+String __dirname = Directory(__filename).parent.path;
+void main() async {
+  var f = File(__dirname + '/test.json5');
+  var r = json5Parse(await f.readAsString());
+  print(r['unquoted']);
+  print(r['singleQuotes']);
+  print(r['lineBreaks']);
+  print(r['hexadecimal']);
+  print(r['leadingDecimalPoint']);
+  print(r['andTrailing']);
+  print(r['positiveSign']);
+  print(r['andIn']);
+  print(r['andIn'][0]);
+}
+```
+
+test.json5:
+```json5
+{
+  // comments
+  unquoted: "and you can quote me on that",
+  singleQuotes: 'I can use "double quotes" here',
+  lineBreaks: "Look, Mom! \
+No \\n's!",
+  hexadecimal: 0xdecaf,
+  leadingDecimalPoint: 0.8675309,
+  andTrailing: 8675309,
+  positiveSign: +1,
+  andIn: ["arrays"]
+}
+```
+
+run:
+```sh
+λ dart ./example/dart_json5parse_example.dart
+and you can quote me on that
+'I can use "double quotes" here'
+Look, Mom! \No \
+'s!
+912559
+0.8675309
+8675309
+1
+[arrays]
+arrays
+```
