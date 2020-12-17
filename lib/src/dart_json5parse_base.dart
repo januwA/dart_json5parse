@@ -6,7 +6,7 @@ var _string_null = 'null';
 var _string_num = r'-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?';
 var _string_double = r'-?\d+\.\d*(?:[eE][+\-]?\d+)?';
 var _string_int = r'-?\d+';
-var _string_hex = r'0x[a-zA-Z0-9]+';
+var _string_hex = r'0x[a-fA-F0-9]+';
 
 var _not_map_key = RegExp(r'[^a-zA-Z0-9_]', dotAll: true);
 var _line_comment = RegExp(r'\/\/[^]*?\n', dotAll: true);
@@ -14,14 +14,19 @@ var _multi_line_comments = RegExp(r'\/\*[^]*?\*\/', dotAll: true);
 var _map_start = RegExp(r'^\s*\{\s*');
 var _map_end = RegExp(r'^\s*\}\s*(,)?\s*');
 var _map_key = RegExp(r'([^]+?)\s*:\s*');
-var _map_value = RegExp(
-    '''(true|false|null|$_string_hex|$_string_num|$_string_a|$_string_b)\s*(,)?\s*''');
+
 var _list_start = RegExp(r'^\s*\[\s*');
 var _list_end = RegExp(r'^\s*\]\s*,?\s*');
-var _list_item = RegExp(r'\s*([^\[\],]*)\s*,?');
 
+/// map_value or list_value
 var _value = RegExp(
-    '''\s*($_string_a|$_string_b|$_string_true|$_string_false|$_string_null|$_string_hex|$_string_num)\s*''');
+    '''($_string_true|$_string_false|$_string_null|$_string_hex|$_string_num|$_string_a|$_string_b)\s*(,)?\s*''');
+
+class ParseResult {
+  dynamic /* List or Map */ result;
+  String text;
+  ParseResult(this.result, this.text);
+}
 
 /// 将字符串转为对应的dart类型
 dynamic _t(String v, {bool isKey = false}) {
@@ -65,159 +70,96 @@ dynamic _t(String v, {bool isKey = false}) {
     }
   }
 
-  throw 'not find parse';
+  // throw 'not find parse: ' + v;
 }
 
-var _hasComma = true;
-Map _evalMap(String text, [Function endCB]) {
+ParseResult _evalMap(String text) {
   var r = {};
-  String k;
-
   void parseMapStart() {
     var m = _map_start.firstMatch(text);
-    while (m != null) {
-      text = text.substring(m.end);
-      m = _map_start.firstMatch(text);
-    }
+    if (m != null) text = text.substring(m.end);
   }
 
-  void parseMapEnd() {
+  bool parseMapEnd() {
     var m = _map_end.firstMatch(text);
 
-    if (m == null && !_hasComma) {
-      throw '逗号匹配错误。';
-    }
-
-    while (m != null) {
-      _hasComma = m.group(1) != null;
+    if (m != null) {
       text = text.substring(m.end);
-      if (endCB != null) {
-        endCB({
-          'map': r,
-          'text': text,
-        });
-        text = '';
-      }
-      m = _map_end.firstMatch(text);
+      return true;
     }
+    return false;
   }
 
-  // 匹配开头
   parseMapStart();
   while (text.isNotEmpty) {
-    // 匹配结束
-    parseMapEnd();
+    if (parseMapEnd()) break;
+
     var m_k = _map_key.firstMatch(text);
     if (m_k != null) {
-      k = _t(m_k.group(1), isKey: true);
+      String k = _t(m_k[1], isKey: true);
       text = text.substring(m_k.end);
-    } else {
-      k = null;
-    }
-    // 匹配value前，先查看是否为{}
-    if (_map_start.hasMatch(text)) {
-      _evalMap(text, (_r) {
-        r[k.trim()] = _r['map'];
-        text = _r['text'];
-      });
-    } else if (_list_start.hasMatch(text)) {
-      _evalList(text, (_r) {
-        r[k.trim()] = _r['list'];
-        text = _r['text'];
-      });
-    } else {
-      var m_v = _map_value.firstMatch(text);
-      if (m_v != null && k != null) {
-        var v = _t(m_v.group(1));
-        r[k.trim()] = v;
-        _hasComma = m_v.group(2) != null;
-        k = null;
-        text = text.substring(m_v.end);
-      }
+      var p = _json5Parse(text);
+      r[k.trim()] = p.result;
+      text = p.text;
     }
   }
-  return r;
+  return ParseResult(r, text);
 }
 
-List<dynamic> _evalList(String text, [Function endCB]) {
+ParseResult _evalList(String text) {
   var r = [];
-  var i = 0;
-  var isList = false;
+
   void parseListStart() {
     var m = _list_start.firstMatch(text);
-    while (m != null) {
-      // print('start before: ' + text);
-      if (i != 0) {
-        r.add([]);
-        isList = true;
-      }
-      i++;
+    if (m != null) {
       text = text.substring(m.end);
-      // print('start after: ' + text);
-      m = _list_start.firstMatch(text);
     }
   }
 
-  void parseListEnd() {
+  bool parseListEnd() {
     var m = _list_end.firstMatch(text);
-    while (m != null) {
-      // print('end before: ' + text);
-      if (i > 2) {
-        var b = r[r.length - 2];
-        b.add(r.removeLast());
-      } else {
-        isList = false;
-      }
-      i--;
+    if (m != null) {
       text = text.substring(m.end);
-
-      if (endCB != null) {
-        endCB({
-          'list': r,
-          'text': text,
-        });
-        text = '';
-      }
-      // print('end after: ' + text);
-      m = _list_end.firstMatch(text);
+      return true;
     }
+    return false;
   }
 
+  parseListStart();
   while (text.isNotEmpty) {
-    // 匹配开头
-    parseListStart();
+    if (parseListEnd()) break;
+    var p = _json5Parse(text);
+    r.add(p.result);
+    text = p.text;
+  }
+  return ParseResult(r, text);
+}
 
-    // 匹配结束
-    parseListEnd();
+ParseResult _json5Parse(String text) {
+  var result;
 
-    // 匹配item
-    if (_map_start.hasMatch(text)) {
-      _evalMap(text, (_r) {
-        var v = _r['map'];
-        if (isList) {
-          r.last.add(v);
-        } else {
-          r.add(v);
-        }
-        text = _r['text'];
-      });
-    } else {
-      var m = _list_item.firstMatch(text);
-      if (m != null) {
-        var v = m.group(1);
-        if (v.isNotEmpty) {
-          if (isList) {
-            r.last.add(_t(v));
-          } else {
-            r.add(_t(v));
-          }
-        }
-
-        text = text.substring(m.end);
+  if (_map_start.hasMatch(text)) {
+    result = _evalMap(text);
+  } else if (_list_start.hasMatch(text)) {
+    result = _evalList(text);
+  } else {
+    // bool, nulber, string
+    var m = _value.firstMatch(text);
+    if (m != null) {
+      text = text.substring(m.end);
+      if (m[2] == null &&
+          !_map_end.hasMatch(text) &&
+          !_list_end.hasMatch(text)) {
+        // 逗号匹配错误
+        throw 'parse error: ' + text;
       }
+      result = ParseResult(_t(m[1]), text);
+    } else {
+      throw 'parse error: ' + text;
     }
   }
-  return r;
+
+  return result;
 }
 
 dynamic json5Parse(String text) {
@@ -229,24 +171,17 @@ dynamic json5Parse(String text) {
   // text = text.replaceAll(RegExp(r'[\r\n]'), '');
   text =
       text.replaceAll(RegExp(r'[\r\n]'), '').replaceAll(RegExp(r'\\n'), '\n');
-  var result;
 
-  if (_map_start.hasMatch(text)) {
-    result = _evalMap(text);
-  } else if (_list_start.hasMatch(text)) {
-    result = _evalList(text);
-  } else {
-    // bool, nulber, string的情况
+  if (!_map_start.hasMatch(text) && !_list_start.hasMatch(text)) {
+    text = text.trim();
     var m = _value.firstMatch(text);
     if (m != null) {
-      var v = m.group(1);
+      var v = m[1];
       text = text.substring(m.end);
-      result = _t(v);
-      if (text.isNotEmpty) return result;
+      if (text.isEmpty) return _t(v);
     } else {
-      throw 'parse error';
+      throw 'parse error: ' + text;
     }
   }
-
-  return result;
+  return _json5Parse(text).result;
 }

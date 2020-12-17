@@ -4,9 +4,9 @@
   singleQuotes: 'I can use "double quotes" here',
   lineBreaks: "Look, Mom! \
 No \\n's!",
-  hexadecimal: 0xdecaf,
+  hexadecimal: 0x0A,
   leadingDecimalPoint: 0.8675309,
   andTrailing: 8675309,
   positiveSign: +1,
-  andIn: ["arrays"]
+  andIn: ["arrays", "xxx"]
 }

@@ -3,36 +3,59 @@ import 'package:test/test.dart';
 
 void main() {
   group('A group of tests', () {
-    test('false Test', () {
-      expect(json5Parse('false'), isFalse);
-    });
-
-    test('true Test', () {
-      expect(json5Parse('true'), isTrue);
-    });
-
-    test('null Test', () {
-      expect(json5Parse('null'), isNull);
-    });
-    test('int Test', () {
+    test('number Test', () {
       expect(json5Parse('123'), 123);
-    });
-    test('negative Test', () {
+      expect(json5Parse('12.3'), 12.3);
       expect(json5Parse('-123'), -123);
-    });
-
-    test('decimal Test', () {
-      expect(json5Parse('-123.12'), -123.12);
-    });
-    test('e-num Test', () {
+      expect(json5Parse('-12.3'), -12.3);
       expect(json5Parse('-123.12e2'), -12312);
     });
 
-    test('string Test', () {
+    test('other Test', () {
       expect(json5Parse(' "hello" '), 'hello');
-    });
-    test('empty string Test', () {
       expect(json5Parse(' "" '), '');
+      expect(json5Parse(" '' "), '');
+      expect(json5Parse('null'), isNull);
+      expect(json5Parse('false'), isFalse);
+      expect(json5Parse('true'), isTrue);
+    });
+
+    test('object Test', () {
+      var data = json5Parse('''
+      {
+        name: "Ajanuw",
+        array: [1, "x", [], {}],
+        k: {
+          name: "Ajanuw",
+        },
+      }
+      ''');
+      expect(data['name'], 'Ajanuw');
+      expect(data['array'][0], 1);
+      expect(data['array'][1], 'x');
+      expect(data['array'][2], isList);
+      expect(data['array'][3], isMap);
+      expect(data['k'], isMap);
+      expect(data['k']['name'], 'Ajanuw');
+    });
+
+    test('array Test', () {
+      var data = json5Parse('''
+      [
+        1,
+        "2",
+        {
+          name: "Ajanuw",
+        },
+        [1],
+      ]
+      ''');
+      expect(data[0], 1);
+      expect(data[1], '2');
+      expect(data[2], isMap);
+      expect(data[2]['name'], 'Ajanuw');
+      expect(data[3], isList);
+      expect(data[3][0], 1);
     });
   });
 }

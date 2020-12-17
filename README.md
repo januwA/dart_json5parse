@@ -32,33 +32,7 @@ void main() async {
 }
 ```
 
-test.json5:
-```json5
-{
-  // comments
-  unquoted: "and you can quote me on that",
-  singleQuotes: 'I can use "double quotes" here',
-  lineBreaks: "Look, Mom! \
-No \\n's!",
-  hexadecimal: 0xdecaf,
-  leadingDecimalPoint: 0.8675309,
-  andTrailing: 8675309,
-  positiveSign: +1,
-  andIn: ["arrays"]
-}
-```
-
-run:
+## test
 ```sh
-λ dart ./example/dart_json5parse_example.dart
-and you can quote me on that
-'I can use "double quotes" here'
-Look, Mom! \No \
-'s!
-912559
-0.8675309
-8675309
-1
-[arrays]
-arrays
+$ dart test
 ```
