@@ -1,10 +1,13 @@
+/**
+ *  c
+ */
 {
   // comments
-  /* comments */
-  
-  unquoted: /* comments */ "and you can quote me on that ❤️" /* comments */,
+  /* c */
 
-  /* comments */'2singleQuotes' /* comments */: /* comments */'I can use "double quotes" here',
+  unquoted: /* c */ "and you can quote me on that ❤️" /* c */,
+
+  /* c */ "2singleQuotes" /* c */: /* c */ 'I can use "double quotes" here',
 
   lineBreaks: "Look, Mom! \
 No \\n's!",
@@ -13,14 +16,23 @@ No \\n's!",
   leadingDecimalPoint: 0.8675309,
   andTrailing: 8675309,
   positiveSign: +1,
-  andIn: ["arrays",/* comments */ "xxx" /* comments */ ],
-  unicode: ["❤❤", "\u{2764}", "\u2764"],
-  comment1: "/* hello world */",
+  andIn: ["arrays", /* c */ "xxx" /* c */],
 
-  // comments
-  comment2: "// hello world ", // comments
+  unicode: [/* c */ "❤❤", "\u{2764}", "\u2764"] /* c */,
 
-  k1: 1,/* comments */ k2 /* comments */ : /* comments */ 2 // comments
+  comment1: " /* hello world */ ",
+
+  obj: /* c */ {
+    /* c */
+    k1: {},
+    k2: [2],
+  } /* c */,
+
+  // c
+  comment2: "// hello world ", // c
+
+  k1: 1,
+  /* c */ k2 /* c */: /* c */ 2, // c
 }
 
 //end

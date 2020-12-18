@@ -10,8 +10,10 @@ void main() async {
   var json5Str = await f.readAsString();
 
   Map r = json5Parse(json5Str);
+  print(''.padLeft(100, '_'));
   r.forEach((key, value) {
     print(
         '${key.toString().padRight(20, ' ')} | ${value.toString().padRight(40, ' ')} | ${value.runtimeType}');
+    print(''.padLeft(100, '_'));
   });
 }
