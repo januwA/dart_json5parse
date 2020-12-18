@@ -19,11 +19,18 @@ void main() {
 
     test('other Test', () {
       expect(json5Parse(' "hello" '), 'hello');
+      expect(json5Parse(' /* c */ "hello"/* c */ // c'), 'hello');
       expect(json5Parse(' "" '), '');
       expect(json5Parse(" '' "), '');
       expect(json5Parse('null'), isNull);
       expect(json5Parse('false'), isFalse);
       expect(json5Parse('true'), isTrue);
+    });
+
+    test('unicode Test', () {
+      expect(json5Parse(''' "❤️" '''), '❤️');
+      expect(json5Parse(''' "\u2764" '''), '\u2764');
+      expect(json5Parse(''' "\u{2764}" '''), '\u{2764}');
     });
 
     test('space Test', () {
