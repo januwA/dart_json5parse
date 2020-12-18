@@ -1,7 +1,6 @@
-dart_json5parse
+## dart_json5parse
 
-> Not strictly tested, there may be many problems 🐞🐞🐞
-
+Parse json5 data in dart
 
 ## install
 ```yaml
@@ -9,30 +8,41 @@ dependencies:
  dart_json5parse:
 ```
 
-## example
+## Example
 ```dart
-import 'dart:io';
-
 import 'package:dart_json5parse/dart_json5parse.dart';
 
-String __filename = Platform.script.path.replaceFirst('/', '');
-String __dirname = Directory(__filename).parent.path;
 void main() async {
-  var f = File(__dirname + '/test.json5');
-  var r = json5Parse(await f.readAsString());
-  print(r['unquoted']);
-  print(r['singleQuotes']);
-  print(r['lineBreaks']);
-  print(r['hexadecimal']);
-  print(r['leadingDecimalPoint']);
-  print(r['andTrailing']);
-  print(r['positiveSign']);
-  print(r['andIn']);
-  print(r['andIn'][0]);
+  var data = json5Parse('''
+  {
+    name: "Ajanuw",
+    array: [1, "x", [], {}],
+    k: {
+      name: "Ajanuw",
+    }
+  }
+  ''');
+
+  expect(data['name'], 'Ajanuw');
+  expect(data['array'][0], 1);
+  expect(data['array'][1], 'x');
+  expect(data['array'][2], isList);
+  expect(data['array'][3], isMap);
+  expect(data['k'], isMap);
+  expect(data['k']['name'], 'Ajanuw');
 }
 ```
 
 ## test
 ```sh
 $ dart test
+```
+
+## Note
+
+Parse the int exponent, the returned type is double
+
+```dart
+expect(json5Parse('1e2'), 100.0);
+expect(json5Parse('1e-2'), 0.01);
 ```

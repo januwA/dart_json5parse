@@ -1,26 +1,43 @@
-var _string_a = r'''"[^"]*"''';
-var _string_b = r"""'[^']*'""";
-var _string_true = 'true';
-var _string_false = 'false';
-var _string_null = 'null';
-var _string_num = r'-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?';
-var _string_double = r'-?\d+\.\d*(?:[eE][+\-]?\d+)?';
-var _string_int = r'-?\d+';
-var _string_hex = r'0x[a-fA-F0-9]+';
+final _string_a = r'''"[^"]*"''';
+final _string_b = r"""'[^']*'""";
+final _string_true = r'true';
+final _string_false = r'false';
+final _string_null = r'null';
 
-var _not_map_key = RegExp(r'[^a-zA-Z0-9_]', dotAll: true);
-var _line_comment = RegExp(r'\/\/[^]*?\n', dotAll: true);
-var _multi_line_comments = RegExp(r'\/\*[^]*?\*\/', dotAll: true);
-var _map_start = RegExp(r'^\s*\{\s*');
-var _map_end = RegExp(r'^\s*\}\s*(,)?\s*');
-var _map_key = RegExp(r'([^]+?)\s*:\s*');
+final _string_a_exp = RegExp(_string_a);
+final _string_b_exp = RegExp(_string_b);
+final _string_true_exp = RegExp(_string_true);
+final _string_false_exp = RegExp(_string_false);
+final _string_null_exp = RegExp(_string_null);
 
-var _list_start = RegExp(r'^\s*\[\s*');
-var _list_end = RegExp(r'^\s*\]\s*,?\s*');
+// 1.0  0.1  1. .1
+final _string_double = r'-?\d*\.\d*(?:[eE][+\-]?\d+)?';
+final _string_int = r'-?\d+(?:[eE][+\-]?\d+)?';
+final _string_hex = r'0x[a-fA-F0-9]+';
+
+final _string_double_exp = RegExp(_string_double);
+final _string_int_exp = RegExp(_string_int);
+final _string_hex_exp = RegExp(_string_hex);
+
+// 处理 1e2 或 1e-2 只能只用double
+final _is_int_exponent = RegExp(r'[eE]', dotAll: true);
+
+final _err_map_key_exp = RegExp(r'[^a-zA-Z0-9_]', dotAll: true);
+final _line_comment_exp = RegExp(r'\/\/[^]*?\n', dotAll: true);
+final _multi_line_comments_exp = RegExp(r'\/\*[^]*?\*\/', dotAll: true);
+final _map_start_exp = RegExp(r'^\s*\{\s*');
+final _map_end_exp = RegExp(r'^\s*\}\s*(,)?\s*');
+final _map_key_exp = RegExp(r'([^]+?)\s*:\s*');
+
+final _list_start_exp = RegExp(r'^\s*\[\s*');
+final _list_end_exp = RegExp(r'^\s*\]\s*,?\s*');
 
 /// map_value or list_value
-var _value = RegExp(
-    '''($_string_true|$_string_false|$_string_null|$_string_hex|$_string_num|$_string_a|$_string_b)\s*(,)?\s*''');
+final _value_exp = RegExp(
+    '''($_string_true|$_string_false|$_string_null|$_string_hex|$_string_double|$_string_int|$_string_a|$_string_b)\s*(,)?\s*''');
+
+final _quotes_start_exp = RegExp(r'''^["']''');
+final _quotes_end_exp = RegExp(r'''["']$''');
 
 class ParseResult {
   dynamic /* List or Map */ result;
@@ -30,75 +47,57 @@ class ParseResult {
 
 /// 将字符串转为对应的dart类型
 dynamic _t(String v, {bool isKey = false}) {
-  if (RegExp(_string_a).hasMatch(v)) {
-    return v.replaceAll(RegExp(r'^"'), '').replaceAll(RegExp(r'"$'), '');
+  if (_string_a_exp.hasMatch(v) || _string_b_exp.hasMatch(v)) {
+    return v.replaceAll(_quotes_start_exp, '').replaceAll(_quotes_end_exp, '');
   }
 
-  if (RegExp(_string_b).hasMatch(v)) {
-    return v.replaceAll(RegExp(r"^'"), '').replaceAll(RegExp(r"'$"), '');
-  }
+  if (_string_true_exp.hasMatch(v)) return true;
+  if (_string_false_exp.hasMatch(v)) return false;
+  if (_string_null_exp.hasMatch(v)) return null;
+  if (_string_double_exp.hasMatch(v)) return double.parse(v);
 
-  if (RegExp(_string_true).hasMatch(v)) {
-    return true;
-  }
-
-  if (RegExp(_string_false).hasMatch(v)) {
-    return false;
-  }
-
-  if (RegExp(_string_null).hasMatch(v)) {
-    return null;
-  }
-
-  if (RegExp(_string_double).hasMatch(v)) {
-    return double.parse(v);
-  }
-
-  if (RegExp(_string_int).hasMatch(v) || RegExp(_string_hex).hasMatch(v)) {
+  if (_string_int_exp.hasMatch(v) || _string_hex_exp.hasMatch(v)) {
+    if (_is_int_exponent.hasMatch(v)) return double.parse(v);
     return int.parse(v);
   }
 
   // is map key
   if (isKey) {
-    // v = name
-    // v = n ame
-    if (_not_map_key.hasMatch(v.trim())) {
-      // error
-      throw 'key error';
+    // v = name -> success
+    // v = n ame -> error
+    if (_err_map_key_exp.hasMatch(v.trim())) {
+      throw 'map key error: ' + v;
     } else {
       return v.trim();
     }
   }
 
-  // throw 'not find parse: ' + v;
+  return v;
 }
 
 ParseResult _evalMap(String text) {
   var r = {};
   void parseMapStart() {
-    var m = _map_start.firstMatch(text);
+    final m = _map_start_exp.firstMatch(text);
     if (m != null) text = text.substring(m.end);
   }
 
   bool parseMapEnd() {
-    var m = _map_end.firstMatch(text);
-
-    if (m != null) {
-      text = text.substring(m.end);
-      return true;
-    }
-    return false;
+    final m = _map_end_exp.firstMatch(text);
+    final ok = m != null;
+    if (ok) text = text.substring(m.end);
+    return ok;
   }
 
   parseMapStart();
   while (text.isNotEmpty) {
     if (parseMapEnd()) break;
 
-    var m_k = _map_key.firstMatch(text);
+    var m_k = _map_key_exp.firstMatch(text);
     if (m_k != null) {
       String k = _t(m_k[1], isKey: true);
       text = text.substring(m_k.end);
-      var p = _json5Parse(text);
+      final p = _json5Parse(text);
       r[k.trim()] = p.result;
       text = p.text;
     }
@@ -110,25 +109,21 @@ ParseResult _evalList(String text) {
   var r = [];
 
   void parseListStart() {
-    var m = _list_start.firstMatch(text);
-    if (m != null) {
-      text = text.substring(m.end);
-    }
+    final m = _list_start_exp.firstMatch(text);
+    if (m != null) text = text.substring(m.end);
   }
 
   bool parseListEnd() {
-    var m = _list_end.firstMatch(text);
-    if (m != null) {
-      text = text.substring(m.end);
-      return true;
-    }
-    return false;
+    final m = _list_end_exp.firstMatch(text);
+    final ok = m != null;
+    if (ok) text = text.substring(m.end);
+    return ok;
   }
 
   parseListStart();
   while (text.isNotEmpty) {
     if (parseListEnd()) break;
-    var p = _json5Parse(text);
+    final p = _json5Parse(text);
     r.add(p.result);
     text = p.text;
   }
@@ -136,51 +131,46 @@ ParseResult _evalList(String text) {
 }
 
 ParseResult _json5Parse(String text) {
-  var result;
-
-  if (_map_start.hasMatch(text)) {
-    result = _evalMap(text);
-  } else if (_list_start.hasMatch(text)) {
-    result = _evalList(text);
+  if (_map_start_exp.hasMatch(text)) {
+    return _evalMap(text);
+  } else if (_list_start_exp.hasMatch(text)) {
+    return _evalList(text);
   } else {
-    // bool, nulber, string
-    var m = _value.firstMatch(text);
+    final m = _value_exp.firstMatch(text);
     if (m != null) {
       text = text.substring(m.end);
       if (m[2] == null &&
-          !_map_end.hasMatch(text) &&
-          !_list_end.hasMatch(text)) {
+          !_map_end_exp.hasMatch(text) &&
+          !_list_end_exp.hasMatch(text)) {
         // 逗号匹配错误
-        throw 'parse error: ' + text;
+        throw 'Comma parse error: ' + text;
       }
-      result = ParseResult(_t(m[1]), text);
+      return ParseResult(_t(m[1]), text);
     } else {
-      throw 'parse error: ' + text;
+      throw 'Value parse error: ' + text;
     }
   }
-
-  return result;
 }
 
 dynamic json5Parse(String text) {
   // 斩掉单行和多行注释
-  text =
-      text.replaceAll(_line_comment, '').replaceAll(_multi_line_comments, '');
+  text = text
+      .replaceAll(_line_comment_exp, '')
+      .replaceAll(_multi_line_comments_exp, '');
 
   // 斩掉首尾空格，和多余的回车换行符
   // text = text.replaceAll(RegExp(r'[\r\n]'), '');
   text =
       text.replaceAll(RegExp(r'[\r\n]'), '').replaceAll(RegExp(r'\\n'), '\n');
 
-  if (!_map_start.hasMatch(text) && !_list_start.hasMatch(text)) {
+  if (!_map_start_exp.hasMatch(text) && !_list_start_exp.hasMatch(text)) {
     text = text.trim();
-    var m = _value.firstMatch(text);
+    final m = _value_exp.firstMatch(text);
     if (m != null) {
-      var v = m[1];
       text = text.substring(m.end);
-      if (text.isEmpty) return _t(v);
+      if (text.isEmpty) return _t(m[1]);
     } else {
-      throw 'parse error: ' + text;
+      throw 'Value parse error: ' + text;
     }
   }
   return _json5Parse(text).result;

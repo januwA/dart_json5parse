@@ -7,14 +7,13 @@ String __dirname = Directory(__filename).parent.path;
 void main() async {
   var f = File(__dirname + '/test.json5');
   var r = json5Parse(await f.readAsString());
-  print(r);
-  // print(r['unquoted']);
-  // print(r['singleQuotes']);
-  // print(r['lineBreaks']);
-  // print(r['hexadecimal']);
-  // print(r['leadingDecimalPoint']);
-  // print(r['andTrailing']);
-  // print(r['positiveSign']);
-  // print(r['andIn']);
-  // print(r['andIn'][0]);
+  print(r['unquoted']);
+  print(r['singleQuotes']);
+  print(r['lineBreaks']);
+  print(r['hexadecimal']);
+  print(r['leadingDecimalPoint']);
+  print(r['andTrailing']);
+  print(r['positiveSign']);
+  print(r['andIn']);
+  print(r['andIn'][0]);
 }

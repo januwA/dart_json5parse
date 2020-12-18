@@ -9,6 +9,12 @@ void main() {
       expect(json5Parse('-123'), -123);
       expect(json5Parse('-12.3'), -12.3);
       expect(json5Parse('-123.12e2'), -12312);
+      expect(json5Parse('-123.12e+2'), -12312);
+      expect(json5Parse('-123.12e-2'), -1.2312);
+      expect(json5Parse('.8'), 0.8);
+      expect(json5Parse('1.'), 1.0);
+      expect(json5Parse('1e2'), 100.0);
+      expect(json5Parse('1e-2'), 0.01);
     });
 
     test('other Test', () {
@@ -20,14 +26,20 @@ void main() {
       expect(json5Parse('true'), isTrue);
     });
 
+    test('space Test', () {
+      expect(json5Parse(' "   " '), '   ');
+      final data = json5Parse(" { data: '  ' } ");
+      expect(data['data'], '  ');
+    });
+
     test('object Test', () {
       var data = json5Parse('''
       {
         name: "Ajanuw",
-        array: [1, "x", [], {}],
+        array: [1, "x", [], { name: 'ajanuw' }],
         k: {
           name: "Ajanuw",
-        },
+        }
       }
       ''');
       expect(data['name'], 'Ajanuw');
@@ -35,6 +47,7 @@ void main() {
       expect(data['array'][1], 'x');
       expect(data['array'][2], isList);
       expect(data['array'][3], isMap);
+      expect(data['array'][3]['name'], 'ajanuw');
       expect(data['k'], isMap);
       expect(data['k']['name'], 'Ajanuw');
     });
