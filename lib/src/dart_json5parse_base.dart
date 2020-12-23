@@ -1,7 +1,7 @@
 import './_exp.dart';
 
 /// Map和List计数
-var _con_textCount = 0;
+var _contextCount = 0;
 
 /// json5 String
 var _text = '';
@@ -38,11 +38,11 @@ void _removeCommet() {
 }
 
 /// 测试逗号是否正确
-void _testComa(RegExpMatch m) {
+void _testComma(RegExpMatch m) {
   if (m.namedGroup('comma') == null &&
       !map_end_exp.hasMatch(_text) &&
       !list_end_exp.hasMatch(_text) &&
-      _con_textCount != 0) {
+      _contextCount != 0) {
     // 逗号匹配错误
     throw 'Comma parse error: ' + _text;
   }
@@ -52,7 +52,7 @@ void Function() _gStart(RegExp exp) {
   return () {
     final m = exp.firstMatch(_text);
     if (m != null) {
-      _con_textCount++;
+      _contextCount++;
       _text = _text.substring(m.end);
     }
   };
@@ -63,9 +63,9 @@ bool Function() _gEnd(RegExp exp) {
     final m = exp.firstMatch(_text);
     final ok = m != null;
     if (ok) {
-      _con_textCount--;
+      _contextCount--;
       _text = _text.substring(m.end);
-      _testComa(m);
+      _testComma(m);
     }
     return ok;
   };
@@ -79,15 +79,16 @@ bool _isList() {
   return list_start_exp.hasMatch(_text);
 }
 
-/// parse Map
+final _mapStart = _gStart(map_start_exp);
+final _mapEnd = _gEnd(map_end_exp);
+
+/// parse {}
 Map _evalMap() {
-  var mapStart = _gStart(map_start_exp);
-  var mapEnd = _gEnd(map_end_exp);
   final r = {};
-  mapStart();
+  _mapStart();
   while (_text.isNotEmpty) {
     _removeCommet();
-    if (mapEnd()) break;
+    if (_mapEnd()) break;
 
     var m_k = map_key_exp.firstMatch(_text);
     if (m_k != null) {
@@ -101,15 +102,16 @@ Map _evalMap() {
   return r;
 }
 
-/// parse List
+final _listStart = _gStart(list_start_exp);
+final _listEnd = _gEnd(list_end_exp);
+
+/// parse []
 List _evalList() {
-  var listStart = _gStart(list_start_exp);
-  var listEnd = _gEnd(list_end_exp);
   final r = [];
-  listStart();
+  _listStart();
   while (_text.isNotEmpty) {
     _removeCommet();
-    if (listEnd()) break;
+    if (_listEnd()) break;
     r.add(_json5Parse());
   }
   return r;
@@ -126,7 +128,7 @@ dynamic _json5Parse() {
     if (m != null) {
       _text = _text.substring(m.end);
       _removeCommet(); // 清理一下注释，在判断逗号是否被正确添加
-      _testComa(m);
+      _testComma(m);
       return _t(m[1]);
     } else {
       throw 'Value parse error: ' + _text;
